@@ -62,7 +62,7 @@ def start(message):
 
 @bot.message_handler(content_types=['text'])
 def buttin_message(message):
-    if not message.text.starts_with('/'):
+    if not message.text.startswith('/'):
         print(message.text)
         filename = "data/" + message.from_user.username + ".json"
         if message.reply_to_message is None:
