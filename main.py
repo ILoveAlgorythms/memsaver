@@ -21,12 +21,6 @@ def start(message):
         bot.send_message(message.chat.id, message.reply_to_message)
 
 
-@bot.message_handler(commands=['proba'])
-def start(message):
-    a = (message.reply_to_message.sticker.file_id)
-    print(a)
-
-
 
 @bot.message_handler(commands=['help'])
 def buttin_message(message):
@@ -68,46 +62,47 @@ def start(message):
 
 @bot.message_handler(content_types=['text'])
 def buttin_message(message):
-    print(message.text)
-    filename = "data/" + message.from_user.username + ".json"
-    if message.reply_to_message is None:
-        with open(filename, "r") as file:
-            a = json.load(file)
-        if message.text in a.keys():
-            try:
-                bot.send_sticker(message.chat.id, a[message.text])
-            except:
-                bot.send_photo(message.chat.id, a[message.text])
-
-        else:
-            bot.send_message(message.chat.id, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
-    else:
-        if message.reply_to_message.content_type in ['sticker', 'animation', 'photo']:
+    if not message.text.starts_with('/'):
+        print(message.text)
+        filename = "data/" + message.from_user.username + ".json"
+        if message.reply_to_message is None:
             with open(filename, "r") as file:
                 a = json.load(file)
             if message.text in a.keys():
-                markup = telebot.types.ReplyKeyboardMarkup(True, True)
-                button1 = telebot.types.KeyboardButton("добавить")
-                button2 = telebot.types.KeyboardButton("заменить")
-                markup.add(button1, button2)
+                try:
+                    bot.send_sticker(message.chat.id, a[message.text])
+                except:
+                    bot.send_photo(message.chat.id, a[message.text])
 
-                msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
-                bot.register_next_step_handler(msg, add_or_repace, filename, message)
             else:
-                print("dfgdg")
-                if message.reply_to_message.content_type == 'sticker':
-                    a[message.text] = message.reply_to_message.sticker.file_id
-                elif message.reply_to_message.content_type == 'animation':
-                    a[message.text] = message.reply_to_message.animation.file_id
-                elif message.reply_to_message.content_type == 'photo':
-                    a[message.text] = message.reply_to_message.photo[0].file_id
-
-            with open(filename, "w", encoding='utf-8') as file:
-                json.dump(a, file, indent=2)
-        elif message.reply_to_message.content_type == "animation":
-            print('animation,', message.from_user.username)
+                bot.send_message(message.chat.id, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
         else:
-            bot.send_message(message.chat.id, message.reply_to_message)
+            if message.reply_to_message.content_type in ['sticker', 'animation', 'photo']:
+                with open(filename, "r") as file:
+                    a = json.load(file)
+                if message.text in a.keys():
+                    markup = telebot.types.ReplyKeyboardMarkup(True, True)
+                    button1 = telebot.types.KeyboardButton("добавить")
+                    button2 = telebot.types.KeyboardButton("заменить")
+                    markup.add(button1, button2)
+
+                    msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
+                    bot.register_next_step_handler(msg, add_or_repace, filename, message)
+                else:
+                    print("dfgdg")
+                    if message.reply_to_message.content_type == 'sticker':
+                        a[message.text] = message.reply_to_message.sticker.file_id
+                    elif message.reply_to_message.content_type == 'animation':
+                        a[message.text] = message.reply_to_message.animation.file_id
+                    elif message.reply_to_message.content_type == 'photo':
+                        a[message.text] = message.reply_to_message.photo[0].file_id
+
+                with open(filename, "w", encoding='utf-8') as file:
+                    json.dump(a, file, indent=2)
+            elif message.reply_to_message.content_type == "animation":
+                print('animation,', message.from_user.username)
+            else:
+                bot.send_message(message.chat.id, message.reply_to_message)
 
 
 def add_or_repace(message, filename, oldmessage):
