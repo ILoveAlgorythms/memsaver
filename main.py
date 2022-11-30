@@ -78,7 +78,7 @@ def buttin_message(message):
                 bot.send_message(message.chat.id, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
         else:
             if message.reply_to_message.content_type in ['sticker', 'animation', 'photo']:
-                with open(filename, "r") as file:
+                with open(filename, "r", encoding='utf-8') as file:
                     a = json.load(file)
                 if message.text in a.keys():
                     markup = telebot.types.ReplyKeyboardMarkup(True, True)
