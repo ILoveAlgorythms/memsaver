@@ -52,7 +52,7 @@ def clearing(message):
         bot.send_message(message.chat.id, 'удалено')
     else:
         bot.send_message(message.chat.id, 'отменено')
-x
+
 
 @bot.message_handler(commands=['облизать'])
 def start(message):
@@ -74,7 +74,11 @@ def buttin_message(message):
         with open(filename, "r") as file:
             a = json.load(file)
         if message.text in a.keys():
-            bot.send_sticker(message.chat.id, a[message.text])
+            try:
+                bot.send_sticker(message.chat.id, a[message.text])
+            except:
+                bot.send_photo(message.chat.id, a[message.text])
+
         else:
             bot.send_message(message.chat.id, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
     else:
