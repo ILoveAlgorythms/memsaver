@@ -57,7 +57,7 @@ def start(message):
     try:
         a = int(message.text.split()[1])
         target = message.reply_to_message
-        for i in range(a):
+        for i in range(a % 20):
             bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAIBumOGbPj-h9-iM893t0t9i2Djv0D_AAKhIgACJ8rhSwXjseyK27zDKwQ', reply_to_message_id=target)
             sleep(0.5)
     except:
@@ -67,6 +67,7 @@ def start(message):
 
 @bot.message_handler(content_types=['text'])
 def buttin_message(message):
+    print(message.from_user.username)
     if message.from_user.username == 'Xattta6bI4':
         bot.send_message(message.chat.id, 'готовь попку, @Xattta6bI4')
     if (message.chat.type != 'group') and (not (message.text.startswith('/'))):
