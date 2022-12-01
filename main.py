@@ -2,6 +2,7 @@ import telebot
 import config as g
 import json
 import admins
+from time import sleep
 
 bot = telebot.TeleBot(g.TOKEN)
 
@@ -30,12 +31,13 @@ def buttin_message(message):
 
 @bot.message_handler(commands=['clear'])
 def start(message):
-    markup = telebot.types.ReplyKeyboardMarkup(True, True)
-    button1 = telebot.types.KeyboardButton("ДААААА!!!!")
-    button2 = telebot.types.KeyboardButton("отмена")
-    markup.add(button1, button2)
-    msg = bot.send_message(message.chat.id, text="вы уверены, что хотите удалить все свои мемчики?", reply_markup=markup)
-    bot.register_next_step_handler(msg, clearing)
+    if message.chat.type != 'group':
+        markup = telebot.types.ReplyKeyboardMarkup(True, True)
+        button1 = telebot.types.KeyboardButton("ДААААА!!!!")
+        button2 = telebot.types.KeyboardButton("отмена")
+        markup.add(button1, button2)
+        msg = bot.send_message(message.chat.id, text="вы уверены, что хотите удалить все свои мемчики?", reply_markup=markup)
+        bot.register_next_step_handler(msg, clearing)
 
 
 def clearing(message):
@@ -55,6 +57,7 @@ def start(message):
         target = message.reply_to_message
         for i in range(a):
             bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAIBumOGbPj-h9-iM893t0t9i2Djv0D_AAKhIgACJ8rhSwXjseyK27zDKwQ', reply_to_message_id=target)
+            sleep(0.5)
     except:
         bot.send_message(message.chat.id, 'я не понимаю что тут облизывать')
 
@@ -89,7 +92,6 @@ def buttin_message(message):
                     msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
                     bot.register_next_step_handler(msg, add_or_repace, filename, message)
                 else:
-                    print("dfgdg")
                     if message.reply_to_message.content_type == 'sticker':
                         a[message.text] = message.reply_to_message.sticker.file_id
                     elif message.reply_to_message.content_type == 'animation':
