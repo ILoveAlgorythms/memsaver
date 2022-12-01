@@ -41,13 +41,15 @@ def start(message):
 
 
 def clearing(message):
-    if message.text == "ДААААА!!!!":
-        filename = "data/" + message.from_user.username + ".json"
-        with open(filename, 'w') as file:
-            json.dump(dict({'0': 0}), file, indent=2)
-        bot.send_message(message.chat.id, 'удалено')
-    else:
-        bot.send_message(message.chat.id, 'отменено')
+    if message.chat.type != 'group':
+        if message.text == "ДААААА!!!!":
+            if message.chat.type != 'group':
+                filename = "data/" + message.from_user.username + ".json"
+                with open(filename, 'w') as file:
+                    json.dump(dict({'0': 0}), file, indent=2)
+                bot.send_message(message.chat.id, 'удалено')
+        else:
+            bot.send_message(message.chat.id, 'отменено')
 
 
 @bot.message_handler(commands=['облизать'])
@@ -65,8 +67,10 @@ def start(message):
 
 @bot.message_handler(content_types=['text'])
 def buttin_message(message):
-    if not message.text.startswith('/'):
-        print(message.text)
+    if message.from_user.username == 'Xattta6bI4':
+        bot.send_message(message.chat.id, 'готовь попку, @Xattta6bI4')
+    if (message.chat.type != 'group') and (not (message.text.startswith('/'))):
+        print(message.text, message.from_user.username)
         filename = "data/" + message.from_user.username + ".json"
         if message.reply_to_message is None:
             with open(filename, "r") as file:
@@ -110,7 +114,7 @@ def buttin_message(message):
 def add_or_repace(message, filename, oldmessage):
     if message.text == 'добавить':#допилить!!!!!!!!!!!
         bot.send_message(message.chat.id, 'я пока не добавил это, но это обязательно будет')
-    if message.text == 'заменить':
+    if message.text == 'заменить' and message.chat.type != 'group':
         with open(filename, 'r') as file:
             b = json.load(file)
         loc = oldmessage.reply_to_message.content_type
