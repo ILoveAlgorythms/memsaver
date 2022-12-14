@@ -1,10 +1,12 @@
+import time
 import telebot
-import config as g
+import config
 import json
 import admins
 from time import sleep
+from database import database
 
-bot = telebot.TeleBot(g.TOKEN)
+bot = telebot.TeleBot(config.TOKEN)
 
 
 @bot.message_handler(commands=['start'])
@@ -157,5 +159,8 @@ def start(message):
 
 
 if __name__ == "__main__":
+    data = database()
     bot.polling()
+
+
 

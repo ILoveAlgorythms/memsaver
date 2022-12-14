@@ -1,1 +1,2 @@
 TOKEN = "5543710891:AAEE8zGANihp_1p9bJBYtnV6Lsr56muGFQQ"
+TABLE = 'data.csv'
