@@ -8,9 +8,18 @@ class database:
 
     def get(self, username, code):  # гет по юзеру и коду
         a = self.data[self.data['user'] == username][self.data['code'] == code]
-        return a.id[0], a.type[0]
+        return a.id.iloc[0], a.type.iloc[0]  # id мема, тип
 
-    def add(self, input):  # добавить по таплу
+    def add(self, user, code, id, type):
+        """
+         Добавляет мем
+
+        @param user: username сохраняемого челоека
+        @param code: кодовое слово
+        @param id: id мема
+        @param type: type мема
+        """
+        input = (user,  code,  id,  type)
         self.data.loc[len(self.data)] = input
         with open(TABLE, 'a') as file:
             for i in input[:-1]:
@@ -23,3 +32,13 @@ class database:
                            ((self.data['code'] == code) | (len(code) == 0))
                            ].index, inplace=True)
         self.data.to_csv(TABLE, index=False)
+
+    def replace(self, user, code, id, type):
+        """
+        Заменяет мем у кодового слова
+
+        @param user: username сохраняемого челоека
+        @param code: кодовое слово, по которому хотим заменить
+        @param id: id мема
+        @param type: type мема
+        """

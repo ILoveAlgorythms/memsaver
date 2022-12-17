@@ -1,4 +1,3 @@
-import time
 import telebot
 import config
 import admins
@@ -7,18 +6,20 @@ from database import database
 
 bot = telebot.TeleBot(config.TOKEN)
 
+
 @bot.message_handler(commands=['start'])
 def start(message):
+    if message.chat.type != 'private':
+        return
     bot.send_message(message.chat.id, "я вас категорически приветсвую! отправтье мне стикер и ответьте на него словом доступа (вот так:)")
     bot.send_photo(message.chat.id, open('instruction.png', 'rb'))
-    print(message.chat.id, "just started")
+    print(message.from_user.username, "just started")
 
 
 @bot.message_handler(commands=['log'])
 def start(message):
     if message.from_user.username in admins.admins:
         bot.send_message(message.chat.id, message.reply_to_message)
-
 
 
 @bot.message_handler(commands=['help'])
@@ -39,6 +40,7 @@ def start(message):
     text = f'{len(clear_request)} своих мемчиков' if len(clear_request) else 'все свои мемчики'
     msg = bot.send_message(message.chat.id, text=f'вы уверены, что хотите удалить {text} ?', reply_markup=markup)
     bot.register_next_step_handler(msg, clearing, clear_request)
+
 
 def clearing(message, clear_request):
     print(clear_request)
@@ -64,7 +66,33 @@ def start(message):
     except:
         bot.send_message(message.chat.id, 'я не понимаю что тут облизывать')
 
-def send_mem(chat, code):
+
+def send_mem(chat, user, code):
+    memid, memtype = Mydatabase.get(user, code)
+    if memid is None:
+        bot.send_message(chat, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
+    elif memtype in ('sticler', 'animation'):
+        bot.send_sticker(chat, memid)
+    else:
+        bot.send_photo(chat, memid)
+
+
+def get_id(message):
+    if message.content_type == 'sticler':
+        return message.reply_to_message.sticker.file_id
+    if message.content_type == 'animation':
+        return message.reply_to_message.animation.file_id
+    return message.reply_to_message.photo[0].file_id
+
+
+# проверить, сушествует ли, если да: провеить или заменить, иначе: добавить
+def solve_memexisting_conflict(message):
+    markup = telebot.types.ReplyKeyboardMarkup(True, True)
+    button1 = telebot.types.KeyboardButton("добавить")
+    button2 = telebot.types.KeyboardButton("заменить")
+    markup.add(button1, button2)
+    msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
+    bot.register_next_step_handler(msg, add_or_replace, message)
 
 
 @bot.message_handler(content_types=['text'])
@@ -73,89 +101,39 @@ def buttin_message(message):
         return
     print(message.text, message.from_user.username)
     if message.reply_to_message is None:
-        send_mem(message.chat.id, message.text)
-        if message.text in a.keys():
-            try:
-                bot.send_sticker(message.chat.id, a[message.text])
-            except:
-                bot.send_photo(message.chat.id, a[message.text])
-        else:
-            bot.send_message(message.chat.id, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
+        send_mem(message.chat.id, message.from_user.username, message.text)
     else:
         if message.reply_to_message.content_type in ['sticker', 'animation', 'photo']:
-            with open(filename, "r", encoding='utf-8') as file:
-                a = json.load(file)
-            if message.text in a.keys():
-                markup = telebot.types.ReplyKeyboardMarkup(True, True)
-                button1 = telebot.types.KeyboardButton("добавить")
-                button2 = telebot.types.KeyboardButton("заменить")
-                markup.add(button1, button2)
-
-                msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
-                bot.register_next_step_handler(msg, add_or_repace, filename, message)
-            else:
-                if message.reply_to_message.content_type == 'sticker':
-                    a[message.text] = message.reply_to_message.sticker.file_id
-                elif message.reply_to_message.content_type == 'animation':
-                    a[message.text] = message.reply_to_message.animation.file_id
-                elif message.reply_to_message.content_type == 'photo':
-                    a[message.text] = message.reply_to_message.photo[0].file_id
-
-            with open(filename, "w", encoding='utf-8') as file:
-                json.dump(a, file, indent=2)
-        elif message.reply_to_message.content_type == "animation":
-            print('animation,', message.from_user.username)
+            if Mydatabase.get(message.from_user.username, message.text)[0] is None:
+                Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+                return
+            solve_memexisting_conflict(message)
         else:
             bot.send_message(message.chat.id, message.reply_to_message)
 
 
-def add_or_repace(message, filename, oldmessage):
-    if message.text == 'добавить':#допилить!!!!!!!!!!!
-        bot.send_message(message.chat.id, 'я пока не добавил это, но это обязательно будет')
-    if message.text == 'заменить' and message.chat.type != 'group':
-        with open(filename, 'r') as file:
-            b = json.load(file)
-        loc = oldmessage.reply_to_message.content_type
-        if loc == 'sticker':
-            b[oldmessage.text] = oldmessage.reply_to_message.sticker.file_id
-            print(b[oldmessage.text], "_____")
-        elif loc == 'animation':
-            b[oldmessage.text] = oldmessage.reply_to_message.animation.file_id
-        # elif loc == 'photo':
-        #     b[oldmessage.text] = oldmessage.reply_to_message.photo.file_id
-        with open(filename, "w", encoding='utf-8') as file:
-            json.dump(b, file, indent=2)
+def add_or_replace(newmessage, message):
+    if newmessage.text == 'добавить':
+        Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+    if newmessage.text == 'заменить':
+        Mydatabase.replace(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
 
 
-@bot.message_handler(content_types=['sticker', 'animation'])
+@bot.message_handler(content_types=['sticker', 'animation', 'photo'])
 def start(message):
-    filename = "data/" + message.from_user.username + ".json"
-
     if message.reply_to_message is None:
         bot.send_message(message.chat.id, 'теперь ответьте сообщением на этот мем:')
-    else:
-        if message.reply_to_message.content_type == 'text':
-            print("sticker replyed to message")
-            with open(filename, "r") as file:
-                a = json.load(file)
-            print(message.text)
-
-            if message.content_type == 'sticker':
-                a[message.reply_to_message.text] = message.sticker.file_id
-            elif message.content_type == 'animation':
-                a[message.reply_to_message.text] = message.animation.file_id
-            # elif message.content_type == 'photo':
-            #     a[message.reply_to_message.text] = message.photo.file_id
-            with open("data/" + message.from_user.username + ".json", "w", encoding='utf-8') as file:
-                json.dump(a, file, indent=2)
-        else:
-            bot.send_message(message.chat.id, 'это не сообщение')
-    #bot.send_sticker(message.chat.id, message.sticker.file_id)
+        return
+    if message.reply_to_message.content_type != 'text':
+        bot.send_message(message.chat.id, 'это не текстом')
+        return
+    print("mem replyed to message")
+    if Mydatabase.get(message.from_user.username, message.text)[0] is None:
+        Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+        return
+    solve_memexisting_conflict(message)
 
 
 if __name__ == "__main__":
     Mydatabase = database()
     bot.polling()
-
-
-
