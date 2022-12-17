@@ -4,7 +4,8 @@ import admins
 from time import sleep
 from database import database
 
-bot = telebot.TeleBot(config.TOKEN)
+# your token here
+bot = telebot.TeleBot()
 
 
 @bot.message_handler(commands=['start'])
@@ -48,11 +49,13 @@ def clearing(message, clear_request):
         return
     if message.text == "ДААААА!!!!":
         Mydatabase.clear(message.from_user.username, clear_request if len(clear_request) > 0 else '')
-        bot.answer_callback_query(callback_query_id=message.id, show_alert=False,
-                                  text="удалено")
+        m = bot.send_message(message.chat.id, 'удалено')
+        bot.delete_message(message.chat.id, m.id)
+        sleep(1.5)
     else:
-        bot.answer_callback_query(callback_query_id=message.id, show_alert=False,
-                                  text="удалено")
+        m = bot.send_message(message.chat.id, 'отменено')
+        sleep(1.5)
+        bot.delete_message(message.chat.id, m.id)
 
 
 @bot.message_handler(commands=['облизать'])
@@ -67,32 +70,44 @@ def start(message):
         bot.send_message(message.chat.id, 'я не понимаю что тут облизывать')
 
 
-def send_mem(chat, user, code):
-    memid, memtype = Mydatabase.get(user, code)
-    if memid is None:
-        bot.send_message(chat, 'такого слова ещё не было. ответьте мемом на ваше сообщение чтобы добавить')
-    elif memtype in ('sticler', 'animation'):
-        bot.send_sticker(chat, memid)
+def send_mem(chat, id, type):
+    if type == 'sticker':
+        bot.send_sticker(chat, id)
+    elif type == 'animation':
+        bot.send_animation(chat, id)
     else:
-        bot.send_photo(chat, memid)
+        bot.send_photo(chat, id)
 
 
 def get_id(message):
-    if message.content_type == 'sticler':
-        return message.reply_to_message.sticker.file_id
+    if message.content_type == 'sticker':
+        return message.sticker.file_id
     if message.content_type == 'animation':
-        return message.reply_to_message.animation.file_id
-    return message.reply_to_message.photo[0].file_id
+        return message.animation.file_id
+    return message.photo[0].file_id
 
 
-# проверить, сушествует ли, если да: провеить или заменить, иначе: добавить
-def solve_memexisting_conflict(message):
+# проверить, сушествует ли, если да: заменить или оставить, иначе: добавить
+def solve_memexisting_conflict(message, mem):
     markup = telebot.types.ReplyKeyboardMarkup(True, True)
-    button1 = telebot.types.KeyboardButton("добавить")
-    button2 = telebot.types.KeyboardButton("заменить")
+    button1 = telebot.types.KeyboardButton("заменить")
+    button2 = telebot.types.KeyboardButton("отмена")
     markup.add(button1, button2)
-    msg = bot.send_message(message.chat.id, text="такое слово уже существует. добавить или заменить?", reply_markup=markup)
-    bot.register_next_step_handler(msg, add_or_replace, message)
+    msg = bot.send_message(message.chat.id, text="такое слово уже что-то кодирует. заменить?", reply_markup=markup)
+    bot.register_next_step_handler(msg, add_or_replace, message, mem)
+
+
+def add_or_replace(newmessage, message, mem):
+    id, type = mem
+    if newmessage.text == 'отмена':
+        m = bot.send_message(message.chat.id, 'отменено')
+        sleep(1.5)
+        bot.delete_message(message.chat.id, m.id)
+    if newmessage.text == 'заменить':
+        Mydatabase.replace(message.from_user.username, message.text, id, type)
+        m = bot.send_message(message.chat.id, '👍')
+        sleep(1.5)
+        bot.delete_message(message.chat.id, m.id)
 
 
 @bot.message_handler(content_types=['text'])
@@ -101,22 +116,18 @@ def buttin_message(message):
         return
     print(message.text, message.from_user.username)
     if message.reply_to_message is None:
-        send_mem(message.chat.id, message.from_user.username, message.text)
+        a = Mydatabase.get(message.from_user.username, message.text)
+        if a[0] is None:
+            bot.send_message(message.chat.id, 'теперь ответьте мемом на это сообщение')
+            return
+        send_mem(message.chat.id, a[0], a[1])
     else:
         if message.reply_to_message.content_type in ['sticker', 'animation', 'photo']:
+            print(Mydatabase.get(message.from_user.username, message.text))
             if Mydatabase.get(message.from_user.username, message.text)[0] is None:
-                Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+                Mydatabase.add(message.from_user.username, message.text, get_id(message.reply_to_message), message.reply_to_message.content_type)
                 return
-            solve_memexisting_conflict(message)
-        else:
-            bot.send_message(message.chat.id, message.reply_to_message)
-
-
-def add_or_replace(newmessage, message):
-    if newmessage.text == 'добавить':
-        Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
-    if newmessage.text == 'заменить':
-        Mydatabase.replace(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+            solve_memexisting_conflict(message, (get_id(message.reply_to_message), message.reply_to_message.content_type))
 
 
 @bot.message_handler(content_types=['sticker', 'animation', 'photo'])
@@ -128,10 +139,11 @@ def start(message):
         bot.send_message(message.chat.id, 'это не текстом')
         return
     print("mem replyed to message")
-    if Mydatabase.get(message.from_user.username, message.text)[0] is None:
-        Mydatabase.add(message.from_user.username, message.text, get_id(message), message.reply_to_message.content_type)
+    if Mydatabase.get(message.from_user.username, message.reply_to_message.text)[0] is None:
+        Mydatabase.add(message.from_user.username, message.reply_to_message.text, get_id(message), message.content_type)
         return
-    solve_memexisting_conflict(message)
+    print('solving')
+    solve_memexisting_conflict(message.reply_to_message, (get_id(message), message.content_type))
 
 
 if __name__ == "__main__":
