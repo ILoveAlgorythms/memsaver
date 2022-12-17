@@ -4,8 +4,8 @@ import admins
 from time import sleep
 from database import database
 
-# your token here
-bot = telebot.TeleBot()
+
+bot = telebot.TeleBot(config.TOKEN)
 
 
 @bot.message_handler(commands=['start'])
