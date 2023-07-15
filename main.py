@@ -9,6 +9,8 @@ bot = telebot.TeleBot(g.TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    if message.chat.type == 'group':
+        return
     bot.send_message(message.chat.id, "я вас категорически приветсвую! отправтье мне стикер и ответьте на него словом доступа (вот так:)")
     bot.send_photo(message.chat.id, open('instruction.png', 'rb'))
     with open("data/" + message.from_user.username + ".json", "w", encoding='utf-8') as file:
@@ -16,17 +18,59 @@ def start(message):
     print(message.chat.id)
 
 
+@bot.message_handler(commands=['очко'])
+def start(message):
+    bet = 10
+    if len(message.text.splt())>=2: 
+        bet = message.text.split[1]
+    maxcount = 11
+    if len(message.text.split()) >= 3:
+        maxcount = message.text.split()[2]
+
+    bot.send_message(message.chat.id, 'ставка: ' + string(bet) + ' играем до: ' + string(maxcount) + ' кидайте кость')
+    
+
 @bot.message_handler(commands=['log'])
 def start(message):
     if message.from_user.username in admins.admins:
-        bot.send_message(message.chat.id, message.reply_to_message)
+        if message.reply_to_message is None:
+            bot.send_message(message.chat.id, 'чтобы получить информацию о сообщении, ответьте на него командой log')
+        else :
+            bot.send_message(message.chat.id, message.reply_to_message)
+
+
+@bot.message_handler(commands=['dice'])
+def start(message):
+    if message.from_user.username in admins.admins:
+        if message.reply_to_message is None:
+            bot.send_message(message.chat.id, 'чтобы получить информацию о сообщении, ответьте на него командой dice')
+        elif message.reply_to_message.content_type != 'dice':
+            bot.send_message(message.chat.id, 'not a dice')
+        else :
+            bot.send_message(message.chat.id, message.reply_to_message.dice.value)
+
+
+@bot.message_handler(commands=['огурецванусе'])
+def start(message):
+    markup=telebot.types.ReplyKeyboardRemove(selective=True)
+    bot.send_message(message.chat.id, text='очищено', reply_to_message_id = message, reply_markup=markup)
+    
+
+@bot.message_handler(commands=['date'])
+def start(message):
+    if message.from_user.username in admins.admins:
+        if message.reply_to_message is None:
+            bot.send_message(message.chat.id, 'чтобы получить информацию о времени отправки сообщения, ответьте на него командой date')
+        else :
+            bot.send_message(message.chat.id, message.reply_to_message.date)
 
 
 
 @bot.message_handler(commands=['help'])
 def buttin_message(message):
-    with open("documentation.txt", 'r', encoding='utf-8') as file:
-        bot.send_message(message.chat.id, '\n'.join(file.readlines()))
+    bot.send_message(message.chat.id, 'я пока тут всё отключил потому что мне лень чето придумывать')
+#    with open("documentation.txt", 'r', encoding='utf-8') as file:
+#        bot.send_message(message.chat.id, '\n'.join(file.readlines()))
 
 
 @bot.message_handler(commands=['clear'])
@@ -55,7 +99,7 @@ def clearing(message):
 @bot.message_handler(commands=['облизать'])
 def start(message):
     try:
-        a = int(message.text.split()[1])
+        a = max(int(message.text.split()[1]), 3)
         target = message.reply_to_message
         for i in range(a % 20):
             bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAIBumOGbPj-h9-iM893t0t9i2Djv0D_AAKhIgACJ8rhSwXjseyK27zDKwQ', reply_to_message_id=target)
