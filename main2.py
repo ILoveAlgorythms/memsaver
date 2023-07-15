@@ -84,7 +84,6 @@ def buttin_message(message):
     print(message.from_user.username)
     if message.from_user.username == 'Xattta6bI4':
         bot.send_message(message.chat.id, 'готовь попку, @Xattta6bI4')
-    if (message.chat.type != 'group') and (not (message.text.startswith('/')))
 
 if __name__ == "__main__":
     bot.polling()
